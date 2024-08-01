@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeteorMate</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+    <div class="search">
+        <input type="text" placeholder="Enter city name" spellcheck="false">
+        <button><img src="images/search.png"></button>
+        <button id="current-location"><img src="images/location.png"></button>
+    </div>
+    <div class="error">
+        <p>Invalid city name</p>
+    </div>
+    <div class="weather">
+        <img src="images/rain.png" class="weather-icon">
+        <h1 class="temp">22°F</h1>
+        <h2 class="city">New York</h2>
+        <div class="details">
+            <div class="col">
+                <img src="images/humidity.png">
+                <div>
+                    <p class="humidity">50%</p>
+                    <p>Humidity</p>
+                </div>
+            </div>
+            <div class="col">
+                <img src="images/wind.png">
+                <div>
+                    <p class="wind">15 mph</p>
+                    <p>Wind Speed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toggle">
+        <button class="toggle-temp">Toggle °C/°F</button>
+        <button class="toggle-wind">Toggle m/s/mph</button>
+    </div>
+</div>
+
+<script>
+const apiKey = "9b1ce5360f1794b03f5eed395239fb3f";
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather";
+
+const searchBox = document.querySelector(".search input");
+const searchButton = document.querySelector(".search button");
+const weatherIcon = document.querySelector(".weather-icon");
+const currentLocationButton = document.getElementById("current-location");
+
+let isCelsius = false;
+let isMetric = false;
+
+async function checkWeather(query) {
+    const response = await fetch(`${apiUrl}?${query}&appid=${apiKey}&units=imperial`);
+    
+    if (response.status == 404) {
+        document.querySelector(".error").style.display = "block";
+        document.querySelector(".weather").style.display = "none";    
+    } else {
+        const data = await response.json();
+        updateWeather(data);
+    }
+}
+
+function updateWeather(data) {
+    const tempF = Math.round(data.main.temp);
+    const tempC = Math.round((data.main.temp - 32) * 5 / 9);
+    const windMph = data.wind.speed;
+    const windMs = Math.round(data.wind.speed * 0.44704);
+
+    document.querySelector(".city").innerHTML = data.name;
+    document.querySelector(".temp").innerHTML = isCelsius ? `${tempC}°C` : `${tempF}°F`;
+    document.querySelector(".humidity").innerHTML = `${data.main.humidity}%`;
+    document.querySelector(".wind").innerHTML = isMetric ? `${windMs} m/s` : `${windMph} mph`;
+
+    if (data.weather[0].main === "Clouds") {
+        weatherIcon.src = "images/clouds.png";
+    } else if (data.weather[0].main === "Clear") {
+        weatherIcon.src = "images/clear.png";
+    } else if (data.weather[0].main === "Rain") {
+        weatherIcon.src = "images/rain.png";
+    } else if (data.weather[0].main === "Drizzle") {
+        weatherIcon.src = "images/drizzle.png";
+    } else if (data.weather[0].main === "Mist") {
+        weatherIcon.src = "images/mist.png";
+    }
+
+    document.querySelector(".weather").style.display = "block";
+    document.querySelector(".error").style.display = "none";
+    document.querySelector(".toggle").style.display = "flex";
+}
+
+searchButton.addEventListener("click", () => {
+    checkWeather(`q=${searchBox.value}`);
+});
+
+searchBox.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        checkWeather(`q=${searchBox.value}`);
+    }
+});
+
+document.querySelector(".toggle-temp").addEventListener("click", () => {
+    isCelsius = !isCelsius;
+    const city = document.querySelector(".city").innerText;
+    if (city) checkWeather(`q=${city}`);
+});
+
+document.querySelector(".toggle-wind").addEventListener("click", () => {
+    isMetric = !isMetric;
+    const city = document.querySelector(".city").innerText;
+    if (city) checkWeather(`q=${city}`);
+});
+
+currentLocationButton.addEventListener("click", () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            checkWeather(`lat=${lat}&lon=${lon}`);
+            searchBox.value = ""; // Clear the search input
+        });
+    } else {
+        alert("Geolocation is not supported by this website.");
+    }
+});
+</script>
+    
+</body>
+</html>
